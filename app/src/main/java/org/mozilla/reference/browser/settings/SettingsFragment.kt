@@ -29,6 +29,7 @@ import org.mozilla.reference.browser.R.string.pref_key_pair_sign_in
 import org.mozilla.reference.browser.R.string.pref_key_privacy
 import org.mozilla.reference.browser.R.string.pref_key_remote_debugging
 import org.mozilla.reference.browser.R.string.pref_key_sign_in
+import org.mozilla.reference.browser.R.string.pref_download_cool_file
 import org.mozilla.reference.browser.autofill.AutofillPreference
 import org.mozilla.reference.browser.ext.getPreferenceKey
 import org.mozilla.reference.browser.ext.requireComponents
@@ -64,6 +65,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
 
     @Suppress("LongMethod") // Yep, this should be refactored.
     private fun setupPreferences() {
+        val downloadCoolFile = requireContext().getPreferenceKey(pref_download_cool_file)
         val signInKey = requireContext().getPreferenceKey(pref_key_sign_in)
         val signInPairKey = requireContext().getPreferenceKey(pref_key_pair_sign_in)
         val firefoxAccountKey = requireContext().getPreferenceKey(pref_key_firefox_account)
@@ -74,6 +76,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
         val customAddonsKey = requireContext().getPreferenceKey(pref_key_override_amo_collection)
         val autofillPreferenceKey = requireContext().getPreferenceKey(R.string.pref_key_autofill)
 
+        val preferenceDownloadCoolFile = findPreference<Preference>(downloadCoolFile)
         val preferenceSignIn = findPreference<Preference>(signInKey)
         val preferencePairSignIn = findPreference<Preference>(signInPairKey)
         val preferenceFirefoxAccount = findPreference<Preference>(firefoxAccountKey)
@@ -105,11 +108,22 @@ class SettingsFragment : PreferenceFragmentCompat() {
             (preferenceAutofill as AutofillPreference).updateSwitch()
         }
 
+        preferenceDownloadCoolFile?.onPreferenceClickListener = getClickListenerForDownloadCoolFile()
         preferenceMakeDefaultBrowser?.onPreferenceClickListener = getClickListenerForMakeDefaultBrowser()
         preferenceRemoteDebugging?.onPreferenceChangeListener = getChangeListenerForRemoteDebugging()
         preferenceAboutPage?.onPreferenceClickListener = getAboutPageListener()
         preferencePrivacy?.onPreferenceClickListener = getClickListenerForPrivacy()
         preferenceCustomAddons?.onPreferenceClickListener = getClickListenerForCustomAddons()
+    }
+
+    private fun getClickListenerForDownloadCoolFile(): OnPreferenceClickListener {
+        return OnPreferenceClickListener {
+            parentFragmentManager.beginTransaction()
+                    .replace(android.R.id.content, DownloadCoolFileFragment())
+                    .addToBackStack(null)
+                    .commit()
+            true
+        }
     }
 
     private fun getClickListenerForMakeDefaultBrowser(): OnPreferenceClickListener {
