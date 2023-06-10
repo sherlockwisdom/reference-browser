@@ -14,62 +14,34 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.os.Environment;
-import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import org.mozilla.reference.browser.BuildConfig;
 import org.mozilla.reference.browser.R;
 
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Set;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link DownloadCoolFileFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class DownloadCoolFileFragment extends Fragment {
-
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
 
     public DownloadCoolFileFragment() {
         // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment DownloadCoolFileFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static DownloadCoolFileFragment newInstance(String param1, String param2) {
-        DownloadCoolFileFragment fragment = new DownloadCoolFileFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
     }
 
     @Override
@@ -88,6 +60,9 @@ public class DownloadCoolFileFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        // TODO:
+        getActivity().setTitle(getContext().getString(R.string.pref_download_cool_file_title));
+
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
         RecyclerView coolFilesRecyclerView = view.findViewById(R.id.download_cool_file_recycler_view);
         coolFilesRecyclerView.setLayoutManager(linearLayoutManager);
@@ -101,6 +76,14 @@ public class DownloadCoolFileFragment extends Fragment {
 
         coolFilesRecyclerView.setAdapter(downloadCoolFileFragmentRecyclerAdapter);
 
+        DownloadCoolFileViewModel downloadCoolFileViewModel = new ViewModelProvider(this)
+                .get(DownloadCoolFileViewModel.class);
+        downloadCoolFileViewModel.getAllCoolFiles().observe(getViewLifecycleOwner(), new Observer<HashMap<String, String>>() {
+            @Override
+            public void onChanged(HashMap<String, String> stringStringHashMap) {
+                downloadCoolFileFragmentRecyclerAdapter.submitList(stringStringHashMap);
+            }
+        });
     }
 
     static class DownloadCoolFileFragmentRecyclerAdapter extends
@@ -108,11 +91,14 @@ public class DownloadCoolFileFragment extends Fragment {
         Context context;
         BroadcastReceiver downloadCompleteBroadcastReceiver;
 
-        ArrayList<String> filenames = new ArrayList<>();
+        HashMap<String, String> filesDatabase = new HashMap<>();
 
         public DownloadCoolFileFragmentRecyclerAdapter(Context context){
             this.context = context;
-            filenames.add("https://gitlab.com/censorship-no/ceno-browser/-/raw/main/README.md");
+        }
+
+        public void submitList(HashMap<String, String> filenames) {
+            filesDatabase = filenames;
         }
 
         @NonNull
@@ -127,8 +113,7 @@ public class DownloadCoolFileFragment extends Fragment {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(fileUrl));
             request.setTitle(fileName);
 
-            // TODO:
-            request.setDescription("Downloading file...");
+            request.setDescription(context.getString(R.string.pref_download_cool_file_download_manager_title));
 
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
@@ -140,29 +125,59 @@ public class DownloadCoolFileFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull DownloadCoolFileFragmentRecyclerAdapter.ViewHolder holder,
                                      int position) {
-            holder.filename.setText(filenames.get(position));
+            Log.d(getClass().getName(), "Pos: " + position);
+            String[] filenames = filesDatabase.keySet().toArray(new String[]{});
 
-            final String fileUrl = filenames.get(position);
+            final String filename = filenames[position];
+            final String fileUrl = filesDatabase.get(filename);
+
+            holder.filename.setText(filename);
+            DialogInterface.OnClickListener onClickListenerYes = new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    AlertDialog.Builder builder1 = new AlertDialog.Builder(context);
+
+                    final EditText editText = new EditText(context);
+                    builder1.setView(editText);
+                    builder1.setTitle(context.getString(R.string.pref_download_cool_file_filename));
+                    builder1.setMessage(context.getString(R.string.pref_download_cool_file_prompt_filename_description));
+
+                    builder1.setPositiveButton(
+                            context.getString(R.string.pref_download_cool_file_prompt_download),
+                            new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    String customFilename = editText.getText() != null &&
+                                            editText.getText().length() > 0 ?
+                                            editText.getText().toString() :
+                                            filename;
+                                    final long downloadedFileId = downloadFile(fileUrl, customFilename);
+                                    registerBroadcastListenerForFile(downloadedFileId);
+                                }
+                            });
+
+                    builder1.setNegativeButton(context.getString(R.string.pref_download_cool_file_prompt_cancel),
+                            new DialogInterface.OnClickListener() { @Override
+                            public void onClick(DialogInterface dialog, int which) { }
+                    });
+                    builder1.show();
+                }
+            };
+
             holder.cardView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(context);
-                    builder.setTitle("Download file")
-                            .setMessage("Are you sure?")
-                            .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    String filename = "sample file.txt";
-                                    final long downloadedFileId = downloadFile(fileUrl, filename);
-                                    registerBroadcastListenerForFile(downloadedFileId);
-                                }
-                            })
-                            .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-
-                                }
-                            });
+                    builder.setTitle(context.getString(R.string.pref_download_cool_file_title))
+                            .setMessage(context.getString(R.string.pref_download_cool_file_prompt))
+                            .setPositiveButton(context.getString(R.string.pref_download_cool_file_prompt_yes),
+                                    onClickListenerYes)
+                            .setNegativeButton(context.getString(R.string.pref_download_cool_file_prompt_no),
+                                    new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                        }
+                                    });
                     AlertDialog dialog = builder.create();
                     dialog.show();
                 }
@@ -208,7 +223,7 @@ public class DownloadCoolFileFragment extends Fragment {
 
         @Override
         public int getItemCount() {
-            return filenames.size();
+            return filesDatabase.size();
         }
 
         public class ViewHolder extends RecyclerView.ViewHolder {
@@ -225,8 +240,29 @@ public class DownloadCoolFileFragment extends Fragment {
     }
 
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
+    public static class DownloadCoolFileViewModel extends ViewModel {
+
+        /**
+         * coolFiles = <cool filename, file url>
+         */
+        private MutableLiveData<HashMap<String, String>> coolFilesLiveData;
+        public MutableLiveData<HashMap<String, String>> getAllCoolFiles() {
+            if(coolFilesLiveData == null) {
+                coolFilesLiveData = new MutableLiveData<>();
+                getCoolFiles();
+            }
+
+            return coolFilesLiveData;
+        }
+
+        private void getCoolFiles(){
+            HashMap<String, String> coolFiles = new HashMap<>();
+            coolFiles.put("CENO README.md",
+                    "https://gitlab.com/censorship-no/ceno-browser/-/raw/main/README.md");
+            coolFiles.put("CENO full description.txt",
+                    "https://gitlab.com/censorship-no/ceno-browser/-/raw/main/fastlane/metadata/android/en-US/full_description.txt");
+
+            coolFilesLiveData.setValue(coolFiles);
+        }
     }
 }
