@@ -18,6 +18,9 @@
     <!-- Preference summary for settings related sign in -->
     <string name="preferences_sign_in_summary">Sync your tabs and history</string>
 
+    <!-- Preference summary for settings related download cool file-->
+    <string name="preferences_download_cool_file_summary">Click here to download a cool file</string>
+
     <!-- Preference summary for pairing sign in -->
     <string name="preferences_pair_sign_in_summary">Pair with Firefox Desktop</string>
 
@@ -55,6 +58,9 @@
 
     <!-- Preference for signing in -->
     <string name="sign_in">Sign in</string>
+
+    <!-- Preference for downloading cool file -->
+    <string name="download_cool_file">Download Cool file</string>
 
     <!-- Preference for signing in -->
     <string name="pair_sign_in">Sign in with a QR code</string>

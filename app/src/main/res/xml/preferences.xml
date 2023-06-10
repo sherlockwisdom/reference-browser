@@ -3,7 +3,13 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<androidx.preference.PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<androidx.preference.PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <androidx.preference.Preference
+        android:key="@string/pref_download_cool_file"
+        android:title="@string/download_cool_file"
+        android:summary="@string/preferences_download_cool_file_summary"/>
 
     <androidx.preference.Preference
             android:key="@string/pref_key_sign_in"
