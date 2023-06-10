@@ -132,6 +132,7 @@ public class DownloadCoolFileFragment extends Fragment {
             final String fileUrl = filesDatabase.get(filename);
 
             holder.filename.setText(filename);
+            holder.fileUrl.setText(fileUrl);
             DialogInterface.OnClickListener onClickListenerYes = new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
@@ -228,12 +229,13 @@ public class DownloadCoolFileFragment extends Fragment {
 
         public class ViewHolder extends RecyclerView.ViewHolder {
 
-            TextView filename;
+            TextView filename, fileUrl;
             CardView cardView;
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
 
                 filename = itemView.findViewById(R.id.cool_files_card_name);
+                fileUrl = itemView.findViewById(R.id.cool_files_card_url);
                 cardView = itemView.findViewById(R.id.cool_files_card);
             }
         }
