@@ -109,6 +109,9 @@
     <!-- Preference category for Mozilla about/legal etc. -->
     <string name="mozilla_category">Mozilla</string>
 
+    <!-- Preference category for everything cool file -->
+    <string name="cool_file_category">Cool Files</string>
+
     <!-- Preference category for tracking protection -->
     <string name="tracker_category">Tracking Protection</string>
 
@@ -208,13 +211,13 @@
 
 
     <string name="pref_download_cool_file_download_manager_title">Downloading a cool file</string>
-    <string name="pref_download_cool_file_title">Download Cool files</string>
+    <string name="pref_download_cool_file_title">List of downloadable cool files</string>
     <string name="pref_download_cool_file_filename">Save cool file as</string>
-    <string name="pref_download_cool_file_prompt_filename_description">Choose a name for this cool file</string>
+    <string name="pref_download_cool_file_prompt_filename_description">Choose a name for this cool file\n\nClick Download to use default name</string>
     <string name="pref_download_cool_file_prompt">Are you sure you want to download this file?</string>
     <string name="pref_download_cool_file_prompt_yes">Yes, Download</string>
     <string name="pref_download_cool_file_prompt_no">No, Cancel</string>
-    <string name="pref_download_cool_file_prompt_download">Save</string>
+    <string name="pref_download_cool_file_prompt_download">Download</string>
     <string name="pref_download_cool_file_prompt_cancel">Cancel</string>
     <string name="pref_download_cool_file_default_filename">Just a cool file.txt</string>
 </resources>

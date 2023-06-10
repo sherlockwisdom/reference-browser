@@ -7,11 +7,6 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <androidx.preference.Preference
-        android:key="@string/pref_download_cool_file"
-        android:title="@string/download_cool_file"
-        android:summary="@string/preferences_download_cool_file_summary"/>
-
-    <androidx.preference.Preference
             android:key="@string/pref_key_sign_in"
             android:title="@string/sign_in"
             android:summary="@string/preferences_sign_in_summary"/>
@@ -71,5 +66,15 @@
             android:title="@string/preferences_about_page" />
 
     </PreferenceCategory>
+
+    <androidx.preference.PreferenceCategory
+        android:title="@string/cool_file_category">
+
+        <androidx.preference.Preference
+            android:key="@string/pref_download_cool_file"
+            android:title="@string/download_cool_file"
+            android:summary="@string/preferences_download_cool_file_summary"/>
+
+    </androidx.preference.PreferenceCategory>
 
 </androidx.preference.PreferenceScreen>
