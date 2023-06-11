@@ -328,7 +328,7 @@ public class DownloadCoolFileFragment extends Fragment {
         }
     }
 
-    private View.OnClickListener onClickListenerAddCoolFile = new View.OnClickListener() {
+    private final View.OnClickListener onClickListenerAddCoolFile = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
