@@ -227,4 +227,7 @@
 
     <string name="pref_download_cool_file_add_new_file_pdf">PDF file</string>
     <string name="pref_download_cool_file_add_new_file_text">Text (.txt, .md, etc)</string>
+
+    <string name="pref_download_cool_file_add_new_file_pdf_meme_type">application/pdf</string>
+    <string name="pref_download_cool_file_add_new_file_text_meme_type">text/plain</string>
 </resources>

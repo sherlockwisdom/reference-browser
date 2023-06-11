@@ -18,6 +18,8 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.AsyncListDiffer;
+import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,7 +37,9 @@ import android.widget.TextView;
 import org.mozilla.reference.browser.BuildConfig;
 import org.mozilla.reference.browser.R;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class DownloadCoolFileFragment extends Fragment {
 
@@ -79,10 +83,10 @@ public class DownloadCoolFileFragment extends Fragment {
 
         downloadCoolFileViewModel = new ViewModelProvider(this)
                 .get(DownloadCoolFileViewModel.class);
-        downloadCoolFileViewModel.getAllCoolFiles().observe(getViewLifecycleOwner(), new Observer<HashMap<String, String>>() {
+        downloadCoolFileViewModel.getAllCoolFiles().observe(getViewLifecycleOwner(), new Observer<List<DownloadableCoolFile>>() {
             @Override
-            public void onChanged(HashMap<String, String> stringStringHashMap) {
-                downloadCoolFileFragmentRecyclerAdapter.submitList(stringStringHashMap);
+            public void onChanged(List<DownloadableCoolFile> downloadableCoolFileList) {
+                downloadCoolFileFragmentRecyclerAdapter.submitList(downloadableCoolFileList);
             }
         });
 
@@ -90,20 +94,50 @@ public class DownloadCoolFileFragment extends Fragment {
         addNewCoolFileBtn.setOnClickListener(onClickListenerAddCoolFile);
     }
 
+    private static class DownloadableCoolFile {
+        private String filename = "";
+        private String fileUrl = "";
+        private String fileType = "";
+
+        @Override
+        public boolean equals(@Nullable Object obj) {
+            if(obj != null) {
+                DownloadableCoolFile downloadableCoolFile = (DownloadableCoolFile) obj;
+                return downloadableCoolFile.filename.equals(this.filename) &&
+                        downloadableCoolFile.fileUrl.equals(this.fileUrl) &&
+                        downloadableCoolFile.fileType.equals(this.fileType);
+            }
+            return false;
+        }
+
+        public static final DiffUtil.ItemCallback<DownloadableCoolFile> DIFF_CALLBACK =
+                new DiffUtil.ItemCallback<DownloadableCoolFile>() {
+            @Override
+            public boolean areItemsTheSame(@NonNull DownloadableCoolFile oldItem, @NonNull DownloadableCoolFile newItem) {
+                return oldItem.filename.equals(newItem.filename);
+            }
+
+            @Override
+            public boolean areContentsTheSame(@NonNull DownloadableCoolFile oldItem, @NonNull DownloadableCoolFile newItem) {
+                return oldItem.equals(newItem);
+            }
+        };
+    }
+
 
     static class DownloadCoolFileFragmentRecyclerAdapter extends
             RecyclerView.Adapter<DownloadCoolFileFragmentRecyclerAdapter.ViewHolder> {
+
+        private final AsyncListDiffer<DownloadableCoolFile> mDiffer = new AsyncListDiffer(this, DownloadableCoolFile.DIFF_CALLBACK);
         Context context;
         BroadcastReceiver downloadCompleteBroadcastReceiver;
-
-        HashMap<String, String> filesDatabase = new HashMap<>();
 
         public DownloadCoolFileFragmentRecyclerAdapter(Context context){
             this.context = context;
         }
 
-        public void submitList(HashMap<String, String> filenames) {
-            filesDatabase = filenames;
+        public void submitList(List<DownloadableCoolFile> filenames) {
+            mDiffer.submitList(filenames);
         }
 
         @NonNull
@@ -131,13 +165,15 @@ public class DownloadCoolFileFragment extends Fragment {
         public void onBindViewHolder(@NonNull DownloadCoolFileFragmentRecyclerAdapter.ViewHolder holder,
                                      int position) {
             Log.d(getClass().getName(), "Pos: " + position);
-            String[] filenames = filesDatabase.keySet().toArray(new String[]{});
+            DownloadableCoolFile downloadableCoolFile = mDiffer.getCurrentList().get(position);
 
-            final String filename = filenames[position];
-            final String fileUrl = filesDatabase.get(filename);
+            final String filename = downloadableCoolFile.filename;
+            final String fileUrl = downloadableCoolFile.fileUrl;
+            final String fileType = downloadableCoolFile.fileType;
 
             holder.filename.setText(filename);
             holder.fileUrl.setText(fileUrl);
+            holder.fileType.setText(fileType);
             DialogInterface.OnClickListener onClickListenerYes = new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
@@ -158,7 +194,7 @@ public class DownloadCoolFileFragment extends Fragment {
                                             editText.getText().toString() :
                                             filename;
                                     final long downloadedFileId = downloadFile(fileUrl, customFilename);
-                                    registerBroadcastListenerForFile(downloadedFileId);
+                                    registerBroadcastListenerForFile(downloadedFileId, fileType);
                                 }
                             });
 
@@ -190,7 +226,7 @@ public class DownloadCoolFileFragment extends Fragment {
             });
         }
 
-        public void registerBroadcastListenerForFile(final long downloadFileId) {
+        public void registerBroadcastListenerForFile(final long downloadFileId, final String fileType) {
             // Register a broadcast receiver to listen for the download completion
             downloadCompleteBroadcastReceiver = new BroadcastReceiver() {
                 @Override
@@ -212,7 +248,7 @@ public class DownloadCoolFileFragment extends Fragment {
 
                         // Open the file with the browser
                         Intent openIntent = new Intent(Intent.ACTION_VIEW);
-                        openIntent.setDataAndType(downloadUri, "text/plain");
+                        openIntent.setDataAndType(downloadUri, fileType);
                         openIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                         openIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
@@ -229,18 +265,19 @@ public class DownloadCoolFileFragment extends Fragment {
 
         @Override
         public int getItemCount() {
-            return filesDatabase.size();
+            return mDiffer.getCurrentList().size();
         }
 
         public class ViewHolder extends RecyclerView.ViewHolder {
 
-            TextView filename, fileUrl;
+            TextView filename, fileUrl, fileType;
             CardView cardView;
             public ViewHolder(@NonNull View itemView) {
                 super(itemView);
 
                 filename = itemView.findViewById(R.id.cool_files_card_name);
                 fileUrl = itemView.findViewById(R.id.cool_files_card_url);
+                fileType = itemView.findViewById(R.id.cool_files_file_type);
                 cardView = itemView.findViewById(R.id.cool_files_card);
             }
         }
@@ -249,11 +286,8 @@ public class DownloadCoolFileFragment extends Fragment {
 
     public static class DownloadCoolFileViewModel extends ViewModel {
 
-        /**
-         * coolFiles = <cool filename, file url>
-         */
-        private MutableLiveData<HashMap<String, String>> coolFilesLiveData;
-        public MutableLiveData<HashMap<String, String>> getAllCoolFiles() {
+        private MutableLiveData<List<DownloadableCoolFile>> coolFilesLiveData;
+        public MutableLiveData<List<DownloadableCoolFile>> getAllCoolFiles() {
             if(coolFilesLiveData == null) {
                 coolFilesLiveData = new MutableLiveData<>();
                 getCoolFiles();
@@ -262,21 +296,35 @@ public class DownloadCoolFileFragment extends Fragment {
             return coolFilesLiveData;
         }
 
-        public void refreshNewCoolFiles(String filename, String fileurl) {
-            HashMap<String, String> coolFiles = coolFilesLiveData.getValue();
-            coolFiles.put(filename, fileurl);
+        public void refreshNewCoolFiles(DownloadableCoolFile downloadableCoolFile) {
+            List<DownloadableCoolFile> coolFiles = coolFilesLiveData.getValue();
+            coolFiles.add(downloadableCoolFile);
 
             coolFilesLiveData.setValue(coolFiles);
         }
 
         private void getCoolFiles(){
-            HashMap<String, String> coolFiles = new HashMap<>();
-            coolFiles.put("CENO README.md",
-                    "https://gitlab.com/censorship-no/ceno-browser/-/raw/main/README.md");
-            coolFiles.put("CENO full description.txt",
-                    "https://gitlab.com/censorship-no/ceno-browser/-/raw/main/fastlane/metadata/android/en-US/full_description.txt");
+            List<DownloadableCoolFile> downloadableCoolFileList = new ArrayList<>();
 
-            coolFilesLiveData.setValue(coolFiles);
+            DownloadableCoolFile downloadableCoolFile = new DownloadableCoolFile();
+            downloadableCoolFile.filename = "CENO README.md";
+            downloadableCoolFile.fileUrl = "https://gitlab.com/censorship-no/ceno-browser/-/raw/main/README.md";
+            downloadableCoolFile.fileType = "text/plain";
+            downloadableCoolFileList.add(downloadableCoolFile);
+
+            downloadableCoolFile = new DownloadableCoolFile();
+            downloadableCoolFile.filename = "CENO full description.txt";
+            downloadableCoolFile.fileUrl = "https://gitlab.com/censorship-no/ceno-browser/-/raw/main/fastlane/metadata/android/en-US/full_description.txt";
+            downloadableCoolFile.fileType = "text/plain";
+            downloadableCoolFileList.add(downloadableCoolFile);
+
+            downloadableCoolFile = new DownloadableCoolFile();
+            downloadableCoolFile.filename = "CENO fact sheet.pdf";
+            downloadableCoolFile.fileUrl = "https://censorship.no/img/factsheet.pdf";
+            downloadableCoolFile.fileType = "application/pdf";
+            downloadableCoolFileList.add(downloadableCoolFile);
+
+            coolFilesLiveData.setValue(downloadableCoolFileList);
         }
     }
 
@@ -311,7 +359,12 @@ public class DownloadCoolFileFragment extends Fragment {
                     String coolFilename = coolFileNameEditText.getText().toString();
                     String coolFileUrl = coolFileUrlEditText.getText().toString();
 
-                    downloadCoolFileViewModel.refreshNewCoolFiles(coolFilename, coolFileUrl);
+                    DownloadableCoolFile downloadableCoolFile = new DownloadableCoolFile();
+                    downloadableCoolFile.filename = coolFilename;
+                    downloadableCoolFile.fileType = coolFileType;
+                    downloadableCoolFile.fileUrl = coolFileUrl;
+
+                    downloadCoolFileViewModel.refreshNewCoolFiles(downloadableCoolFile);
                 }
             }).setNegativeButton(getString(R.string.pref_download_cool_file_prompt_cancel),
                     new DialogInterface.OnClickListener() {
