@@ -220,4 +220,11 @@
     <string name="pref_download_cool_file_prompt_download">Download</string>
     <string name="pref_download_cool_file_prompt_cancel">Cancel</string>
     <string name="pref_download_cool_file_default_filename">Just a cool file.txt</string>
+    <string name="pref_download_cool_file_new_btn">Add a cool file</string>
+    <string name="pref_download_cool_file_add_new_file">Add</string>
+    <string name="pref_download_cool_file_add_new_file_name">Name to save cool file</string>
+    <string name="pref_download_cool_file_add_new_file_url">Add URL to get new file.</string>
+
+    <string name="pref_download_cool_file_add_new_file_pdf">PDF file</string>
+    <string name="pref_download_cool_file_add_new_file_text">Text (.txt, .md, etc)</string>
 </resources>

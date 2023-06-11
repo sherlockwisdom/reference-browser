@@ -14,7 +14,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
@@ -28,17 +27,20 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import org.mozilla.reference.browser.BuildConfig;
 import org.mozilla.reference.browser.R;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
 
 public class DownloadCoolFileFragment extends Fragment {
+
+    DownloadCoolFileFragmentRecyclerAdapter downloadCoolFileFragmentRecyclerAdapter;
+    DownloadCoolFileViewModel downloadCoolFileViewModel;
 
     public DownloadCoolFileFragment() {
         // Required empty public constructor
@@ -60,7 +62,6 @@ public class DownloadCoolFileFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // TODO:
         getActivity().setTitle(getContext().getString(R.string.pref_download_cool_file_title));
 
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext());
@@ -71,12 +72,12 @@ public class DownloadCoolFileFragment extends Fragment {
                 linearLayoutManager.getOrientation());
         coolFilesRecyclerView.addItemDecoration(dividerItemDecoration);
 
-        DownloadCoolFileFragmentRecyclerAdapter downloadCoolFileFragmentRecyclerAdapter =
+        downloadCoolFileFragmentRecyclerAdapter =
                 new DownloadCoolFileFragmentRecyclerAdapter(getContext());
 
         coolFilesRecyclerView.setAdapter(downloadCoolFileFragmentRecyclerAdapter);
 
-        DownloadCoolFileViewModel downloadCoolFileViewModel = new ViewModelProvider(this)
+        downloadCoolFileViewModel = new ViewModelProvider(this)
                 .get(DownloadCoolFileViewModel.class);
         downloadCoolFileViewModel.getAllCoolFiles().observe(getViewLifecycleOwner(), new Observer<HashMap<String, String>>() {
             @Override
@@ -84,7 +85,11 @@ public class DownloadCoolFileFragment extends Fragment {
                 downloadCoolFileFragmentRecyclerAdapter.submitList(stringStringHashMap);
             }
         });
+
+        Button addNewCoolFileBtn = view.findViewById(R.id.download_cool_file_add_new_btn);
+        addNewCoolFileBtn.setOnClickListener(onClickListenerAddCoolFile);
     }
+
 
     static class DownloadCoolFileFragmentRecyclerAdapter extends
             RecyclerView.Adapter<DownloadCoolFileFragmentRecyclerAdapter.ViewHolder> {
@@ -257,6 +262,13 @@ public class DownloadCoolFileFragment extends Fragment {
             return coolFilesLiveData;
         }
 
+        public void refreshNewCoolFiles(String filename, String fileurl) {
+            HashMap<String, String> coolFiles = coolFilesLiveData.getValue();
+            coolFiles.put(filename, fileurl);
+
+            coolFilesLiveData.setValue(coolFiles);
+        }
+
         private void getCoolFiles(){
             HashMap<String, String> coolFiles = new HashMap<>();
             coolFiles.put("CENO README.md",
@@ -267,4 +279,47 @@ public class DownloadCoolFileFragment extends Fragment {
             coolFilesLiveData.setValue(coolFiles);
         }
     }
+
+    private View.OnClickListener onClickListenerAddCoolFile = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+
+            builder.setTitle(getString(R.string.pref_download_cool_file_new_btn));
+
+            builder.setMessage(getString(R.string.pref_download_cool_file_add_new_file_url));
+
+            LayoutInflater inflater = getLayoutInflater();
+            View newCoolFileViewLayout = inflater.inflate(R.layout.view_add_new_cool_file, null);
+
+            builder.setView(newCoolFileViewLayout);
+
+            EditText coolFileUrlEditText = newCoolFileViewLayout.findViewById(R.id.add_new_cool_file_url_input);
+            EditText coolFileNameEditText = newCoolFileViewLayout.findViewById(R.id.add_new_cool_file_name);
+            RadioGroup radioGroup = newCoolFileViewLayout.findViewById(R.id.cool_file_file_type_radio_group);
+
+            builder.setPositiveButton(getString(R.string.pref_download_cool_file_add_new_file),
+                    new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    String coolFileType = "text/plain";
+
+                    if(radioGroup.getCheckedRadioButtonId() == R.id.cool_file_pdf_radio_btn) {
+                        coolFileType = "application/pdf";
+                    }
+
+                    String coolFilename = coolFileNameEditText.getText().toString();
+                    String coolFileUrl = coolFileUrlEditText.getText().toString();
+
+                    downloadCoolFileViewModel.refreshNewCoolFiles(coolFilename, coolFileUrl);
+                }
+            }).setNegativeButton(getString(R.string.pref_download_cool_file_prompt_cancel),
+                    new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                }
+            });
+            builder.show();
+        }
+    };
 }
