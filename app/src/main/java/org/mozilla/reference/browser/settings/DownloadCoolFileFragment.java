@@ -33,6 +33,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.mozilla.reference.browser.BuildConfig;
 import org.mozilla.reference.browser.R;
@@ -41,6 +42,28 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * - [Decisions for each method used.]
+ *
+ * - A fragment is used here to maintain the uniformity of the codebase.
+ * - A RecyclerView is used to build a list of default downloadable cool files.
+ * - A custom view at layout.view_cool_files_item.xml is added to display the items in the RecyclerView.
+ * - A ViewModel is used with the RecyclerView to ease separating and accessing the data sources/layer.
+ * - A class called DownloadableCoolFile is created so that we can different between objects in the
+ *      RecyclerView using AsyncListDiffer. This is a background method of computing the differences
+ *      between objects for a RecyclerView.
+ * - A button is added so that the user can download custom filetypes apart from the defaults. When
+ *      new cool files are added they are submitted to the RecyclerView to demonstrate how the ViewModel
+ *      and RecyclerView work as data and representation layers respectively.
+ * - A custom view at layout.view_add_new_cool_file is used to create a customized alert box that can
+ *      have the required inputs types.
+ *
+ * - [Important note]
+ * --> The data is not persistent as no persistent storage is used. Everything is populated and used
+ *      from default variable values.
+ * --> Data verification is at the minimal; currently does not check if downloaded filetype matches
+ *      the registered filetype.
+ */
 public class DownloadCoolFileFragment extends Fragment {
 
     DownloadCoolFileFragmentRecyclerAdapter downloadCoolFileFragmentRecyclerAdapter;
@@ -195,6 +218,11 @@ public class DownloadCoolFileFragment extends Fragment {
                                             filename;
                                     final long downloadedFileId = downloadFile(fileUrl, customFilename);
                                     registerBroadcastListenerForFile(downloadedFileId, fileType);
+
+                                    Toast toast = Toast.makeText(context,
+                                            context.getString(R.string.pref_download_cool_file_add_download_queued),
+                                            Toast.LENGTH_SHORT);
+                                    toast.show();
                                 }
                             });
 
