@@ -212,8 +212,7 @@ public class DownloadCoolFileFragment extends Fragment {
                             new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
-                                    String customFilename = editText.getText() != null &&
-                                            editText.getText().length() > 0 ?
+                                    String customFilename = editText.getText() != null && editText.getText().length() > 0 ?
                                             editText.getText().toString() :
                                             filename;
                                     final long downloadedFileId = downloadFile(fileUrl, customFilename);

@@ -307,6 +307,9 @@ dependencies {
     implementation Deps.androidx_compose_material
 
     implementation Deps.google_material
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.5.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 
     androidTestImplementation Deps.uiautomator
     androidTestImplementation Deps.junit_ktx

@@ -119,7 +119,7 @@ class SettingsFragment : PreferenceFragmentCompat() {
     private fun getClickListenerForDownloadCoolFile(): OnPreferenceClickListener {
         return OnPreferenceClickListener {
             parentFragmentManager.beginTransaction()
-                    .replace(android.R.id.content, DownloadCoolFileFragment())
+                    .replace(android.R.id.content, DownloadCoolFileFragmentKt())
                     .addToBackStack(null)
                     .commit()
             true
