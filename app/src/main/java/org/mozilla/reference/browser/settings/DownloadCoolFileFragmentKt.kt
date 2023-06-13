@@ -10,35 +10,55 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.EditText
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.cardview.widget.CardView
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.get
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
-import androidx.lifecycle.viewModelScope
 import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.launch
 import org.mozilla.reference.browser.R
 
+
+/**
+ * - [Decisions for each method used.]
+ *
+ * - A fragment is used here to maintain the uniformity of the codebase.
+ * - A RecyclerView is used to build a list of default downloadable cool files.
+ * - A custom view at layout.view_cool_files_item.xml is added to display the items in the RecyclerView.
+ * - A ViewModel is used with the RecyclerView to ease separating and accessing the data sources/layer.
+ * - A class called DownloadableCoolFile is created so that we can different between objects in the
+ *      RecyclerView using AsyncListDiffer. This is a background method of computing the differences
+ *      between objects for a RecyclerView.
+ * - A button is added so that the user can download custom filetypes apart from the defaults. When
+ *      new cool files are added they are submitted to the RecyclerView to demonstrate how the ViewModel
+ *      and RecyclerView work as data and representation layers respectively.
+ * - A custom view at layout.view_add_new_cool_file is used to create a customized alert box that can
+ *      have the required inputs types.
+ *
+ * - [Important note]
+ * --> The data is not persistent as no persistent storage is used. Everything is populated and used
+ *      from default variable values.
+ * --> Data verification is at the minimal; currently does not check if downloaded filetype matches
+ *      the registered filetype.
+ */
 class DownloadCoolFileFragmentKt : Fragment() {
 
+    private val downloadCoolFileViewModel : DownloadCoolFileViewModel by viewModels()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?): View? {
@@ -80,7 +100,6 @@ class DownloadCoolFileFragmentKt : Fragment() {
         val downloadCoolFileFragmentRecyclerAdapter = context?.let { DownloadCoolFileFragmentRecyclerAdapter(it) };
         recyclerView.adapter = downloadCoolFileFragmentRecyclerAdapter
 
-        val downloadCoolFileViewModel : DownloadCoolFileViewModel by viewModels()
         downloadCoolFileViewModel.getAllCoolFiles().observe(viewLifecycleOwner,
                 Observer { downloadableCoolFile : Array<DownloadableCoolFile> ->
                     run {
@@ -88,27 +107,25 @@ class DownloadCoolFileFragmentKt : Fragment() {
                     }
                 }
         )
+
+        val addNewCoolFileBtn : Button = view.findViewById(R.id.download_cool_file_add_new_btn);
+        addNewCoolFileBtn.setOnClickListener(onClickListenerAddCoolFile);
     }
 
     class DownloadableCoolFile {
-        var filename : String = String()
-        var fileUrl : String = String()
-        var fileType : String = String()
+        var filename : String = ""
+        var fileUrl : String = ""
+        var fileType : String = ""
 
         override fun equals(other: Any?): Boolean {
-            when(other) {
-                is DownloadableCoolFile -> return other.fileType == this.fileType &&
-                        other.filename == this.filename &&
-                        other.fileUrl == this.fileUrl
-            }
-            return false;
-        }
+            if (this === other) return true
+            if (other == null || javaClass != other.javaClass) return false
 
-        override fun hashCode(): Int {
-            var result = filename.hashCode()
-            result = 31 * result + fileUrl.hashCode()
-            result = 31 * result + fileType.hashCode()
-            return result
+            val otherFile = other as DownloadableCoolFile
+
+            return filename == otherFile.filename &&
+                    fileUrl == otherFile.fileUrl &&
+                    fileType == otherFile.fileType
         }
 
         class DIFF_CALLBACK : DiffUtil.ItemCallback<DownloadableCoolFile>() {
@@ -125,7 +142,7 @@ class DownloadCoolFileFragmentKt : Fragment() {
     class DownloadCoolFileFragmentRecyclerAdapter(val context: Context) :
             RecyclerView.Adapter<DownloadCoolFileFragmentRecyclerAdapter.ViewHolder>() {
 
-        var mDiffer : AsyncListDiffer<DownloadableCoolFile> =
+        private var mDiffer : AsyncListDiffer<DownloadableCoolFile> =
                 AsyncListDiffer(this, DownloadableCoolFile.DIFF_CALLBACK());
 
         class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -263,6 +280,13 @@ class DownloadCoolFileFragmentKt : Fragment() {
             return coolFilesLiveData
         }
 
+        public fun refreshNewCoolFiles( downloadableCoolFile : DownloadableCoolFile) {
+            var coolFiles : Array<DownloadableCoolFile>? = coolFilesLiveData.value;
+            coolFiles = coolFiles?.plus(downloadableCoolFile)
+
+            coolFilesLiveData.value = coolFiles!!;
+        }
+
         private fun getCoolFiles(){
             val downloadableCoolFileCenoReadMe = DownloadableCoolFile();
             downloadableCoolFileCenoReadMe.filename = "CENO README.md";
@@ -287,4 +311,42 @@ class DownloadCoolFileFragmentKt : Fragment() {
             coolFilesLiveData.value = downloadableCoolFileList;
         }
     }
+
+    private val onClickListenerAddCoolFile : View.OnClickListener = View.OnClickListener {
+        val builder: AlertDialog.Builder? = context?.let { it1 -> AlertDialog.Builder(it1) };
+
+        builder?.setTitle(getString(R.string.pref_download_cool_file_new_btn));
+        builder?.setMessage(getString(R.string.pref_download_cool_file_add_new_file_url));
+
+        val inflater : LayoutInflater = layoutInflater;
+        val newCoolFileViewLayout : View = inflater.inflate(R.layout.view_add_new_cool_file, null);
+
+        builder?.setView(newCoolFileViewLayout);
+
+        val coolFileUrlEditText : EditText = newCoolFileViewLayout.findViewById(R.id.add_new_cool_file_url_input);
+        val coolFileNameEditText : EditText = newCoolFileViewLayout.findViewById(R.id.add_new_cool_file_name);
+        val radioGroup : RadioGroup = newCoolFileViewLayout.findViewById(R.id.cool_file_file_type_radio_group);
+
+        builder?.setPositiveButton(getString(R.string.pref_download_cool_file_add_new_file),
+                DialogInterface.OnClickListener { _: DialogInterface, _: Int ->
+                    var coolFileType = "text/plain";
+
+                    if(radioGroup.checkedRadioButtonId == R.id.cool_file_pdf_radio_btn) {
+                        coolFileType = "application/pdf";
+                    }
+
+                    val coolFilename = coolFileNameEditText.text.toString();
+                    val coolFileUrl = coolFileUrlEditText.text.toString();
+
+                    val downloadableCoolFile = DownloadableCoolFile();
+                    downloadableCoolFile.filename = coolFilename;
+                    downloadableCoolFile.fileType = coolFileType;
+                    downloadableCoolFile.fileUrl = coolFileUrl;
+
+                    downloadCoolFileViewModel.refreshNewCoolFiles(downloadableCoolFile);
+                })?.setNegativeButton(getString(R.string.pref_download_cool_file_prompt_cancel),
+                DialogInterface.OnClickListener { _:DialogInterface, _: Int -> {}});
+
+        builder?.show();
+    };
 }
